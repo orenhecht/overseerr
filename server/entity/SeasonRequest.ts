@@ -8,8 +8,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { MediaRequest } from './MediaRequest';
+import { EpisodeRequest } from './EpisodeRequest';
 
 @Entity()
 class SeasonRequest {
@@ -32,6 +34,12 @@ class SeasonRequest {
 
   @UpdateDateColumn()
   public updatedAt: Date;
+
+  @OneToMany(() => EpisodeRequest, (episode) => episode.season, {
+    cascade: true,
+    eager: true,
+  })
+  public episodes: EpisodeRequest[];
 
   constructor(init?: Partial<SeasonRequest>) {
     Object.assign(this, init);

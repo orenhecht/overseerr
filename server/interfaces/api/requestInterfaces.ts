@@ -18,4 +18,7 @@ export type MediaRequestBody = {
   languageProfileId?: number;
   userId?: number;
   tags?: number[];
+  episodes?: {
+    [seasonNumber: number]: number[];
+  };
 };

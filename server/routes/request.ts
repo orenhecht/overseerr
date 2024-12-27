@@ -22,6 +22,7 @@ import { Permission } from '@server/lib/permissions';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
 import { Router } from 'express';
+import { EpisodeRequest } from '@server/entity/EpisodeRequest';
 
 const requestRoutes = Router();
 
@@ -436,6 +437,32 @@ requestRoutes.put<{ requestId: string }>(
           );
         }
 
+        // Handle episode requests
+        if (req.body.episodes) {
+          for (const season of request.seasons) {
+            const seasonEpisodes = req.body.episodes[season.seasonNumber] || [];
+
+            // Remove episodes that are no longer requested
+            season.episodes = season.episodes.filter((episode) =>
+              seasonEpisodes.includes(episode.episodeNumber)
+            );
+
+            // Add new episode requests
+            const existingEpisodeNumbers = season.episodes.map((e) => e.episodeNumber);
+            const newEpisodes = seasonEpisodes
+              .filter((episodeNumber: number) => !existingEpisodeNumbers.includes(episodeNumber))
+              .map(
+                (episodeNumber: number) =>
+                  new EpisodeRequest({
+                    episodeNumber,
+                    status: MediaRequestStatus.PENDING,
+                  })
+              );
+
+            season.episodes.push(...newEpisodes);
+          }
+        }
+
         await requestRepository.save(request);
       }
 
@@ -519,7 +546,13 @@ requestRoutes.post<{
     try {
       const request = await requestRepository.findOneOrFail({
         where: { id: Number(req.params.requestId) },
-        relations: { requestedBy: true, modifiedBy: true },
+        relations: {
+          requestedBy: true,
+          modifiedBy: true,
+          seasons: {
+            episodes: true,
+          },
+        },
       });
 
       let newStatus: MediaRequestStatus;
@@ -538,6 +571,21 @@ requestRoutes.post<{
 
       request.status = newStatus;
       request.modifiedBy = req.user;
+
+      // Update episode status if specific episodes are provided
+      if (req.body.episodes) {
+        for (const season of request.seasons) {
+          const seasonEpisodes = req.body.episodes[season.seasonNumber];
+          if (seasonEpisodes) {
+            for (const episode of season.episodes) {
+              if (seasonEpisodes.includes(episode.episodeNumber)) {
+                episode.status = newStatus;
+              }
+            }
+          }
+        }
+      }
+
       await requestRepository.save(request);
 
       return res.status(200).json(request);
