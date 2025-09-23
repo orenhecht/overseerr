@@ -1,9 +1,10 @@
 name: Deploy API Docs
 
 on:
-  push:
-    branches:
-      - develop
+  # push:
+  #   branches:
+  #     - develop  # TEMPORARILY DISABLED for episode feature testing
+  workflow_dispatch: # Manual trigger only during testing
 
 jobs:
   deploy:

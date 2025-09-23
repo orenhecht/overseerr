@@ -4,9 +4,9 @@ on:
   pull_request:
     branches:
       - '*'
-  push:
-    branches:
-      - develop
+  # push:
+  #   branches:
+  #     - develop  # TEMPORARILY DISABLED for episode feature testing
 
 jobs:
   cypress-run:
