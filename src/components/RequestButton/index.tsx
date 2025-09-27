@@ -36,6 +36,78 @@ const messages = defineMessages({
     'Decline {requestCount, plural, one {4K Request} other {{requestCount} 4K Requests}}',
 });
 
+/**
+ * Check if there are any unrequested episodes available for a TV series
+ * This allows the "Request More" button to appear even when all seasons are marked as complete
+ * if there are individual episodes that haven't been requested yet
+ */
+const hasUnrequestedEpisodes = (media: Media): boolean => {
+  if (!media.seasons || media.seasons.length === 0) {
+    return false;
+  }
+
+  // Get all requested episodes and seasons from all requests (excluding declined)
+  const requestedEpisodes = new Set<string>();
+  const requestedSeasons = new Set<number>();
+
+  media.requests?.forEach((request) => {
+    if (request.status === MediaRequestStatus.DECLINED) return;
+
+    // Track full season requests
+    request.seasons?.forEach((season) => {
+      requestedSeasons.add(season.seasonNumber);
+    });
+
+    // Track individual episode requests
+    request.episodes?.forEach((episode) => {
+      requestedEpisodes.add(`${episode.seasonNumber}-${episode.episodeNumber}`);
+    });
+  });
+
+  // Check each season to see if there are unrequested episodes
+  for (const season of media.seasons) {
+    // Skip season 0 (specials)
+    if (season.seasonNumber === 0) {
+      continue;
+    }
+
+    // If the entire season is already requested, skip it
+    if (requestedSeasons.has(season.seasonNumber)) {
+      continue;
+    }
+
+    // For seasons that are NOT available/processing/partially_available,
+    // there might be episodes to request
+    if (
+      season.status !== MediaStatus.AVAILABLE &&
+      season.status !== MediaStatus.PROCESSING &&
+      season.status !== MediaStatus.PARTIALLY_AVAILABLE
+    ) {
+      return true;
+    }
+
+    // For available/processing seasons, only allow episode requests if there are
+    // some individual episode requests (indicating partial season requests)
+    if (
+      (season.status === MediaStatus.AVAILABLE ||
+        season.status === MediaStatus.PROCESSING ||
+        season.status === MediaStatus.PARTIALLY_AVAILABLE) &&
+      requestedEpisodes.size > 0
+    ) {
+      // Check if there are any episode requests for this season
+      const hasEpisodeRequestsForSeason = Array.from(requestedEpisodes).some(
+        (episodeKey) => episodeKey.startsWith(`${season.seasonNumber}-`)
+      );
+
+      if (hasEpisodeRequestsForSeason) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 interface ButtonOption {
   id: string;
   text: string;
@@ -296,7 +368,9 @@ const RequestButton = ({
       type: 'or',
     }) &&
     media &&
-    !isShowComplete
+    (!isShowComplete ||
+      (settings.currentSettings.partialRequestsEnabled &&
+        hasUnrequestedEpisodes(media)))
   ) {
     buttons.push({
       id: 'request-more',

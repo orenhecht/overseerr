@@ -580,6 +580,13 @@ const TvRequestModal = ({
         ];
       }, [] as number[]);
 
+    // When partial requests are enabled, don't automatically treat available seasons
+    // as "requested" - allow episode-level requests within them
+    if (settings.currentSettings.partialRequestsEnabled) {
+      return requestedSeasons;
+    }
+
+    // Legacy behavior: treat available seasons as requested (for full-season-only mode)
     const availableSeasons = (data?.mediaInfo?.seasons ?? [])
       .filter(
         (season) =>
@@ -1055,6 +1062,7 @@ const TvRequestModal = ({
                           sn[is4k ? 'status4k' : 'status'] !==
                             MediaStatus.DELETED
                       );
+
                       return (
                         <React.Fragment key={`season-${season.id}`}>
                           <tr
@@ -1074,18 +1082,10 @@ const TvRequestModal = ({
                                 tabIndex={0}
                                 data-testid="season-toggle"
                                 aria-checked={
-                                  (!!mediaSeason &&
-                                    !(
-                                      editRequest &&
-                                      hasPermission(Permission.MANAGE_REQUESTS)
-                                    )) ||
-                                  (isSeasonAlreadyRequested(
+                                  !!mediaSeason ||
+                                  isSeasonAlreadyRequested(
                                     season.seasonNumber
-                                  ) &&
-                                    !(
-                                      editRequest &&
-                                      hasPermission(Permission.MANAGE_REQUESTS)
-                                    )) ||
+                                  ) ||
                                   isSelectedSeason(season.seasonNumber)
                                 }
                                 onClick={(e) => {
@@ -1117,14 +1117,16 @@ const TvRequestModal = ({
                                   }
                                 }}
                                 className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center justify-center pt-2 focus:outline-none ${
-                                  (mediaSeason &&
+                                  (isSeasonAlreadyRequested(
+                                    season.seasonNumber
+                                  ) &&
                                     !(
                                       editRequest &&
                                       hasPermission(Permission.MANAGE_REQUESTS)
                                     )) ||
-                                  (isSeasonAlreadyRequested(
-                                    season.seasonNumber
-                                  ) &&
+                                  (!!mediaSeason &&
+                                    !settings.currentSettings
+                                      .partialRequestsEnabled &&
                                     !(
                                       editRequest &&
                                       hasPermission(Permission.MANAGE_REQUESTS)
@@ -1139,22 +1141,10 @@ const TvRequestModal = ({
                                 <span
                                   aria-hidden="true"
                                   className={`${
-                                    (!!mediaSeason &&
-                                      !(
-                                        editRequest &&
-                                        hasPermission(
-                                          Permission.MANAGE_REQUESTS
-                                        )
-                                      )) ||
-                                    (isSeasonAlreadyRequested(
+                                    !!mediaSeason ||
+                                    isSeasonAlreadyRequested(
                                       season.seasonNumber
-                                    ) &&
-                                      !(
-                                        editRequest &&
-                                        hasPermission(
-                                          Permission.MANAGE_REQUESTS
-                                        )
-                                      )) ||
+                                    ) ||
                                     isSelectedSeason(season.seasonNumber)
                                       ? 'bg-indigo-500'
                                       : 'bg-gray-700'
@@ -1163,22 +1153,10 @@ const TvRequestModal = ({
                                 <span
                                   aria-hidden="true"
                                   className={`${
-                                    (!!mediaSeason &&
-                                      !(
-                                        editRequest &&
-                                        hasPermission(
-                                          Permission.MANAGE_REQUESTS
-                                        )
-                                      )) ||
-                                    (isSeasonAlreadyRequested(
+                                    !!mediaSeason ||
+                                    isSeasonAlreadyRequested(
                                       season.seasonNumber
-                                    ) &&
-                                      !(
-                                        editRequest &&
-                                        hasPermission(
-                                          Permission.MANAGE_REQUESTS
-                                        )
-                                      )) ||
+                                    ) ||
                                     isSelectedSeason(season.seasonNumber)
                                       ? 'translate-x-5'
                                       : 'translate-x-0'
