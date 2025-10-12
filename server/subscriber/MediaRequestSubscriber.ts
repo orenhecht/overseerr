@@ -699,7 +699,8 @@ export class MediaRequestSubscriber
           tags,
           monitored: true,
           searchNow: !sonarrSettings.preventSearch,
-          // Don't use unmonitoredSeasons - let all seasons be monitored, then selectively manage episodes
+          // Series will be added with "monitor: existing" to prevent automatic downloads
+          // before episode-level monitoring is configured for partial season requests
         };
 
         // Run entity asynchronously so we don't wait for it on the UI side

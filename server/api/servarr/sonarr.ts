@@ -246,6 +246,9 @@ class SonarrAPI extends ServarrBase<{
           addOptions: {
             ignoreEpisodesWithFiles: true,
             searchForMissingEpisodes: options.searchNow,
+            // Monitor existing episodes only to prevent automatic downloads
+            // before episode-level monitoring can be configured
+            monitor: 'existing',
           },
         } as Partial<SonarrSeries>
       );
